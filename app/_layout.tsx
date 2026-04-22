@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { StatusBar } from 'react-native';
+import { ActivityIndicator, StatusBar, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import {
@@ -19,7 +19,13 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
-  if (!loaded) return null;
+  if (!loaded) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0b0f14' }}>
+        <ActivityIndicator size="large" color="#7dd3fc" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaProvider>

@@ -26,8 +26,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         return;
       }
-      const me = await apiFetch<ApiUser>('/api/users/me');
-      setUser(me);
+      const controller = new AbortController();
+      const timeoutMs = 12_000;
+      const t = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const me = await apiFetch<ApiUser>('/api/users/me', { signal: controller.signal });
+        setUser(me);
+      } finally {
+        clearTimeout(t);
+      }
     } catch {
       await storage.clearTokens();
       setUser(null);
