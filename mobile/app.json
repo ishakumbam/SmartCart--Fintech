@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "SmartCart",
+    "slug": "smartcart",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FDFCF8"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yourname.smartcart"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FDFCF8"
+      },
+      "package": "com.yourname.smartcart"
+    },
+    "scheme": "smartcart",
+    "plugins": ["expo-router"]
+  }
+}
