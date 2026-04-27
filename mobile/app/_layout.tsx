@@ -22,6 +22,7 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { queryClient } from '@/lib/queryClient';
 import { registerForPushNotifications } from '@/lib/notificationService';
+import { getCurrentLocation, saveUserLocation } from '@/lib/locationService';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,6 +37,9 @@ function AuthGate() {
   useEffect(() => {
     if (isAuthenticated && user) {
       registerForPushNotifications(user.id);
+      getCurrentLocation().then(location => {
+        if (location) saveUserLocation(user.id, location);
+      });
     }
   }, [isAuthenticated, user]);
 

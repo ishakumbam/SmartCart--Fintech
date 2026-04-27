@@ -121,13 +121,22 @@ export default function HabitsScreen() {
       >
         {/* ── Header ──────────────────────────────────── */}
         <View style={styles.header}>
-          <Text style={styles.heading}>My Habits</Text>
-          <Text style={styles.subheading}>
-            {profile.length > 0
-              ? `${profile.length} items tracked`
-              : 'Scan receipts to build your profile'
-            }
-          </Text>
+          <View>
+            <Text style={styles.heading}>My Habits</Text>
+            <Text style={styles.subheading}>
+              {profile.length > 0
+                ? `${profile.length} items tracked`
+                : 'Scan receipts to build your profile'
+              }
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.historyBtn}
+            onPress={() => router.push('/history')}
+          >
+            <Ionicons name="receipt-outline" size={18} color={Palette.moss500} />
+            <Text style={styles.historyBtnText}>History</Text>
+          </TouchableOpacity>
         </View>
 
         {/* ── Loading ──────────────────────────────────── */}
@@ -462,4 +471,20 @@ const styles = StyleSheet.create({
   profileEmoji: {
     fontSize: 16,
   },
+  historyBtn: {
+    flexDirection:     'row',
+    alignItems:        'center',
+    backgroundColor:   `${Palette.moss500}12`,
+    borderRadius:      9999,
+    paddingVertical:   8,
+    paddingHorizontal: 14,
+    gap:               6,
+    borderWidth:       1,
+    borderColor:       `${Palette.moss500}25`,
+  },
+  historyBtnText: {
+    fontFamily: Typography.bodySemi,
+    fontSize:   Typography.sm,
+    color:      Palette.moss500,
+  }
 });

@@ -6,6 +6,7 @@ export interface ParsedItem {
   rawName:   string;
   quantity:  number;
   unitPrice: number;
+  category?: string;
 }
 
 export interface ParsedReceipt {
@@ -15,48 +16,20 @@ export interface ParsedReceipt {
   items:        ParsedItem[];
 }
 
-export async function uploadReceiptImage(uri: string, userId: string): Promise<string> {
+export async function uploadAndParseReceipt(
+  uri:    string,
+  userId: string,
+): Promise<{ imageUrl: string; parsed: ParsedReceipt }> {
   const compressed = await manipulateAsync(
     uri,
     [{ resize: { width: 1200 } }],
     { compress: 0.7, format: SaveFormat.JPEG }
   );
 
-  const fileName = `${userId}/${Date.now()}.jpg`;
-  const fileData = await FileSystem.readAsStringAsync(compressed.uri, {
-    encoding: 'base64',
-  });
-
-  const { error } = await supabase.storage
-    .from('receipts')
-    .upload(fileName, decode(fileData), {
-      contentType: 'image/jpeg',
-      upsert:      false,
-    });
-
-  if (error) throw error;
-
-  const { data: urlData } = supabase.storage
-    .from('receipts')
-    .getPublicUrl(fileName);
-
-  return urlData.publicUrl;
-}
-
-export async function uploadAndParseReceipt(uri: string, userId: string): Promise<{ imageUrl: string; parsed: ParsedReceipt }> {
-  // Compress image
-  const compressed = await manipulateAsync(
-    uri,
-    [{ resize: { width: 1200 } }],
-    { compress: 0.7, format: SaveFormat.JPEG }
-  );
-
-  // Read as base64
   const base64 = await FileSystem.readAsStringAsync(compressed.uri, {
     encoding: 'base64',
   });
 
-  // Upload to storage
   const fileName = `${userId}/${Date.now()}.jpg`;
   const { error } = await supabase.storage
     .from('receipts')
@@ -73,7 +46,6 @@ export async function uploadAndParseReceipt(uri: string, userId: string): Promis
 
   const imageUrl = urlData.publicUrl;
 
-  // Send base64 directly to edge function
   const { data, error: fnError } = await supabase.functions.invoke('parse-receipt', {
     body: { imageBase64: base64 },
   });
@@ -116,7 +88,7 @@ export async function saveReceipt(
       receipt_id:      receipt.id,
       raw_name:        item.rawName,
       normalized_name: item.rawName.toLowerCase().trim(),
-      category:        'general',
+      category:        item.category ?? 'general',
       quantity:        item.quantity,
       unit_price:      item.unitPrice,
     }));

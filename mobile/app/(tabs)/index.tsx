@@ -10,28 +10,42 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { SafeScreen } from '@/components/ui/SafeScreen';
 import { Button } from '@/components/ui/Button';
 import { DealCard } from '@/components/ui/DealCard';
 import { useAuthStore } from '@/store/authStore';
-import { getBuyProfile, BuyProfileItem } from '@/lib/habitService';
+import { getBuyProfile } from '@/lib/habitService';
 import { getPersonalizedDeals, Deal } from '@/lib/dealService';
+import { getCurrentLocation, saveUserLocation } from '@/lib/locationService';
 import { Colors, Typography, Palette } from '@/constants/theme';
+
+type FeedTab = 'foryou' | 'other';
 
 export default function HomeScreen() {
   const { user }                        = useAuthStore();
   const firstName                       = user?.name?.split(' ')[0] ?? 'there';
   const [deals, setDeals]               = useState<Deal[]>([]);
-  const [profile, setProfile]           = useState<BuyProfileItem[]>([]);
   const [loading, setLoading]           = useState(true);
   const [refreshing, setRefreshing]     = useState(false);
   const [hasScanned, setHasScanned]     = useState(false);
+  const [locationName, setLocationName] = useState('Nearby');
+  const [activeTab, setActiveTab]       = useState<FeedTab>('foryou');
 
   const loadData = async () => {
     if (!user) return;
     try {
+      const location = await getCurrentLocation();
+      if (location) {
+        await saveUserLocation(user.id, location);
+        const [place] = await Location.reverseGeocodeAsync({
+          latitude:  location.lat,
+          longitude: location.lng,
+        });
+        if (place?.city) setLocationName(place.city);
+      }
+
       const buyProfile = await getBuyProfile(user.id);
-      setProfile(buyProfile);
       setHasScanned(buyProfile.length > 0);
 
       const personalizedDeals = await getPersonalizedDeals(user.id, buyProfile);
@@ -51,7 +65,9 @@ export default function HomeScreen() {
     loadData();
   };
 
-  const personalizedCount = deals.filter(d => d.frequencyScore > 0).length;
+  const forYouDeals = deals.filter(d => d.frequencyScore > 0);
+  const otherDeals  = deals.filter(d => d.frequencyScore === 0);
+  const activeDeals = activeTab === 'foryou' ? forYouDeals : otherDeals;
 
   return (
     <SafeScreen blobs={[
@@ -75,18 +91,18 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>Hey {firstName} 👋</Text>
             <Text style={styles.tagline}>
               {hasScanned
-                ? `${personalizedCount} deals matched to your habits`
+                ? `${forYouDeals.length} deals matched to your habits`
                 : 'The Expedia of everyday shopping'
               }
             </Text>
           </View>
           <TouchableOpacity style={styles.locationChip}>
             <Ionicons name="location-outline" size={14} color={Palette.moss500} />
-            <Text style={styles.locationText}>Nearby</Text>
+            <Text style={styles.locationText}>{locationName}</Text>
           </TouchableOpacity>
         </View>
 
-        {/* ── No scan yet — onboarding card ───────────── */}
+        {/* ── Onboarding card ──────────────────────────── */}
         {!hasScanned && (
           <View style={styles.onboardCard}>
             <Text style={styles.onboardTitle}>Get your first deals</Text>
@@ -105,20 +121,27 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* ── Deal feed section header ─────────────────── */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            {hasScanned ? 'Your Deals' : 'Featured Deals'}
-          </Text>
-          <Text style={styles.sectionSub}>
-            {hasScanned
-              ? 'Ranked by your shopping habits'
-              : 'Scan a receipt to personalize'
-            }
-          </Text>
+        {/* ── Toggle tabs ──────────────────────────────── */}
+        <View style={styles.tabRow}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'foryou' && styles.tabActive]}
+            onPress={() => setActiveTab('foryou')}
+          >
+            <Text style={[styles.tabText, activeTab === 'foryou' && styles.tabTextActive]}>
+              🎯 For You {forYouDeals.length > 0 ? `(${forYouDeals.length})` : ''}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'other' && styles.tabActive]}
+            onPress={() => setActiveTab('other')}
+          >
+            <Text style={[styles.tabText, activeTab === 'other' && styles.tabTextActive]}>
+              🛒 All Deals {otherDeals.length > 0 ? `(${otherDeals.length})` : ''}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* ── Loading state ────────────────────────────── */}
+        {/* ── Loading ──────────────────────────────────── */}
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Palette.moss500} />
@@ -127,9 +150,9 @@ export default function HomeScreen() {
         )}
 
         {/* ── Deal cards ───────────────────────────────── */}
-        {!loading && deals.length > 0 && (
+        {!loading && activeDeals.length > 0 && (
           <View style={styles.dealGrid}>
-            {deals.map((deal, index) => (
+            {activeDeals.map((deal, index) => (
               <DealCard
                 key={deal.id}
                 deal={deal}
@@ -140,20 +163,29 @@ export default function HomeScreen() {
         )}
 
         {/* ── Empty state ──────────────────────────────── */}
-        {!loading && deals.length === 0 && (
+        {!loading && activeDeals.length === 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🌿</Text>
-            <Text style={styles.emptyTitle}>No deals yet</Text>
-            <Text style={styles.emptyBody}>
-              Scan a receipt to start seeing personalized deals on items you already buy.
+            <Text style={styles.emptyIcon}>
+              {activeTab === 'foryou' ? '🎯' : '🌿'}
             </Text>
-            <Button
-              label="Scan a Receipt"
-              variant="outline"
-              onPress={() => router.push('/(tabs)/scan')}
-              size="md"
-              style={{ marginTop: 20 }}
-            />
+            <Text style={styles.emptyTitle}>
+              {activeTab === 'foryou' ? 'No matches yet' : 'No deals yet'}
+            </Text>
+            <Text style={styles.emptyBody}>
+              {activeTab === 'foryou'
+                ? 'Scan more receipts so we can match deals to what you actually buy.'
+                : 'Check back soon for new deals in your area.'
+              }
+            </Text>
+            {activeTab === 'foryou' && (
+              <Button
+                label="Scan a Receipt"
+                variant="outline"
+                onPress={() => router.push('/(tabs)/scan')}
+                size="md"
+                style={{ marginTop: 20 }}
+              />
+            )}
           </View>
         )}
       </ScrollView>
@@ -228,26 +260,42 @@ const styles = StyleSheet.create({
     fontSize:   Typography.sm,
     color:      `${Palette.paleMist}AA`,
   },
-  sectionHeader: {
-    paddingHorizontal: 24,
-    marginBottom:      16,
+  tabRow: {
+    flexDirection:    'row',
+    marginHorizontal: 20,
+    marginBottom:     20,
+    backgroundColor:  Palette.stone,
+    borderRadius:     9999,
+    padding:          4,
   },
-  sectionTitle: {
-    fontFamily: Typography.heading,
-    fontSize:   Typography.xl,
-    color:      Palette.loam,
-  },
-  sectionSub: {
-    fontFamily: Typography.body,
-    fontSize:   Typography.sm,
-    color:      Colors.textMuted,
-    marginTop:  2,
-  },
-  loadingContainer: {
+  tab: {
+    flex:           1,
+    paddingVertical: 10,
+    borderRadius:   9999,
     alignItems:     'center',
     justifyContent: 'center',
+  },
+  tabActive: {
+    backgroundColor: '#FEFEFA',
+    shadowColor:     Palette.moss500,
+    shadowOffset:    { width: 0, height: 2 },
+    shadowOpacity:   0.08,
+    shadowRadius:    8,
+    elevation:       2,
+  },
+  tabText: {
+    fontFamily: Typography.bodySemi,
+    fontSize:   Typography.sm,
+    color:      Colors.textMuted,
+  },
+  tabTextActive: {
+    color: Palette.loam,
+  },
+  loadingContainer: {
+    alignItems:      'center',
+    justifyContent:  'center',
     paddingVertical: 48,
-    gap:            12,
+    gap:             12,
   },
   loadingText: {
     fontFamily: Typography.body,

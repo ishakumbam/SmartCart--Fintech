@@ -61,7 +61,7 @@ Return this exact structure:
   "purchaseDate": "YYYY-MM-DD",
   "total": 0.00,
   "items": [
-    { "rawName": "item name", "quantity": 1, "unitPrice": 0.00 }
+    { "rawName": "item name", "quantity": 1, "unitPrice": 0.00, "category": "category" }
   ]
 }
 
@@ -73,6 +73,7 @@ Rules:
 - EXCLUDE: tax lines, subtotal lines, discount/savings lines, change due, payment method info, store address, cashier info, loyalty points, member savings
 - quantity: number of units purchased (default 1)
 - unitPrice: price per unit
+- category: must be exactly one of these: dairy, produce, meat, bakery, frozen, beverage, snacks, candy, pantry, household, personal_care, general
 - Return ONLY the JSON object, nothing else`,
           },
           {
@@ -115,6 +116,7 @@ Rules:
         rawName:   String(item.rawName),
         quantity:  Number(item.quantity)  || 1,
         unitPrice: Number(item.unitPrice) || 0,
+        category:  String(item.category  || 'general'),
       }));
 
     console.log('PARSED ITEMS:', parsed.items.length);
