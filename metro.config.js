@@ -19,6 +19,12 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     originalResolveRequest ??
     ((ctx, mod, plat) => ctx.resolveRequest(ctx, mod, plat));
 
+  // Expo SDK 55 may request a legacy RN internal module name on some installs.
+  // RN 0.72 ships NativeDevLoadingView instead; alias to keep dev HMR working.
+  if (moduleName === 'react-native/Libraries/Utilities/DevLoadingView') {
+    return resolve(context, 'react-native/Libraries/Utilities/NativeDevLoadingView', platform);
+  }
+
   if (platform === 'web' && isUnderReactNativeLibraries(context.originModulePath)) {
     return resolve(context, moduleName, 'ios');
   }

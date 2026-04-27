@@ -5,7 +5,7 @@
     "version": "0.1.0",
     "scheme": "smartcart",
     "orientation": "portrait",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "ios": {
       "infoPlist": {
         "NSCameraUsageDescription": "SmartCart uses the camera to photograph receipts for savings insights.",
