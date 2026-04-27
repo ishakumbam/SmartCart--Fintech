@@ -15,6 +15,7 @@ import { ParsedReceiptView } from '@/components/ui/ParsedReceiptView';
 import { uploadAndParseReceipt, saveReceipt, ParsedReceipt } from '@/lib/receiptService';import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/lib/supabase';
 import { Typography, Palette, Colors } from '@/constants/theme';
+import { updateBuyProfile } from '@/lib/habitService';
 
 type ScanState = 'idle' | 'camera' | 'processing' | 'review' | 'done';
 
@@ -51,7 +52,9 @@ export default function ScanScreen() {
     if (!user || !capturedUri) return;
     try {
       setSaving(true);
-      await saveReceipt(user.id, capturedUri, parsed);
+      const receipt = await saveReceipt(user.id, capturedUri, parsed);
+      // Update habit engine after saving
+      await updateBuyProfile(user.id, receipt.id);
       setScanState('done');
     } catch (err: any) {
       Alert.alert('Error', err.message ?? 'Failed to save receipt.');

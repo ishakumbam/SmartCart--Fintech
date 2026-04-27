@@ -1,70 +1,84 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeScreen } from '@/components/ui/SafeScreen';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { DealCard } from '@/components/ui/DealCard';
 import { useAuthStore } from '@/store/authStore';
-import { Colors, Typography, Palette, Shadows } from '@/constants/theme';
-
-function SkeletonDealCard({ organic }: { organic: 1 | 2 | 3 }) {
-  return (
-    <Card organic={organic} style={styles.skeletonCard}>
-      <View style={styles.skeletonImageArea}>
-        <View style={styles.skeletonImage} />
-        <View style={styles.skeletonBadge} />
-      </View>
-      <View style={{ padding: 14 }}>
-        <View style={[styles.skeletonLine, { width: '60%', marginBottom: 6 }]} />
-        <View style={[styles.skeletonLine, { width: '40%', height: 10 }]} />
-        <View style={styles.skeletonPriceRow}>
-          <View style={[styles.skeletonLine, { width: 50, height: 18 }]} />
-          <View style={[styles.skeletonLine, { width: 70, height: 14 }]} />
-        </View>
-      </View>
-    </Card>
-  );
-}
-
-function StepChip({ num, label, done }: { num: number; label: string; done: boolean }) {
-  return (
-    <View style={[styles.stepChip, done && styles.stepChipDone]}>
-      <View style={[styles.stepNum, done && styles.stepNumDone]}>
-        {done
-          ? <Ionicons name="checkmark" size={11} color={Palette.paleMist} />
-          : <Text style={styles.stepNumText}>{num}</Text>
-        }
-      </View>
-      <Text style={[styles.stepLabel, done && styles.stepLabelDone]}>{label}</Text>
-    </View>
-  );
-}
+import { getBuyProfile, BuyProfileItem } from '@/lib/habitService';
+import { getPersonalizedDeals, Deal } from '@/lib/dealService';
+import { Colors, Typography, Palette } from '@/constants/theme';
 
 export default function HomeScreen() {
-  const { user } = useAuthStore();
-  const firstName = user?.name?.split(' ')[0] ?? 'there';
+  const { user }                        = useAuthStore();
+  const firstName                       = user?.name?.split(' ')[0] ?? 'there';
+  const [deals, setDeals]               = useState<Deal[]>([]);
+  const [profile, setProfile]           = useState<BuyProfileItem[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [refreshing, setRefreshing]     = useState(false);
+  const [hasScanned, setHasScanned]     = useState(false);
+
+  const loadData = async () => {
+    if (!user) return;
+    try {
+      const buyProfile = await getBuyProfile(user.id);
+      setProfile(buyProfile);
+      setHasScanned(buyProfile.length > 0);
+
+      const personalizedDeals = await getPersonalizedDeals(user.id, buyProfile);
+      setDeals(personalizedDeals);
+    } catch (err) {
+      console.error('Error loading deals:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => { loadData(); }, [user]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
+  const personalizedCount = deals.filter(d => d.frequencyScore > 0).length;
 
   return (
     <SafeScreen blobs={[
-      { variant: 1, color: 'moss', size: 320, top: -100, right: -120, opacity: 0.25 },
-      { variant: 3, color: 'sand', size: 220, bottom: 80, left: -80,  opacity: 0.30 },
+      { variant: 1, color: 'moss', size: 320, top: -100, right: -120, opacity: 0.22 },
+      { variant: 3, color: 'sand', size: 220, bottom: 80, left: -80,  opacity: 0.28 },
     ]}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Palette.moss500}
+          />
+        }
       >
+        {/* ── Header ──────────────────────────────────── */}
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Hey {firstName} 👋</Text>
-            <Text style={styles.tagline}>The Expedia of everyday shopping</Text>
+            <Text style={styles.tagline}>
+              {hasScanned
+                ? `${personalizedCount} deals matched to your habits`
+                : 'The Expedia of everyday shopping'
+              }
+            </Text>
           </View>
           <TouchableOpacity style={styles.locationChip}>
             <Ionicons name="location-outline" size={14} color={Palette.moss500} />
@@ -72,51 +86,76 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.onboardCard}>
-          <Text style={styles.onboardTitle}>Get your first deals</Text>
-          <Text style={styles.onboardSub}>Complete 3 quick steps</Text>
-          <View style={styles.stepsRow}>
-            <StepChip num={1} label="Signed up"    done={true} />
-            <StepChip num={2} label="Scan receipt" done={false} />
-            <StepChip num={3} label="See deals"    done={false} />
+        {/* ── No scan yet — onboarding card ───────────── */}
+        {!hasScanned && (
+          <View style={styles.onboardCard}>
+            <Text style={styles.onboardTitle}>Get your first deals</Text>
+            <Text style={styles.onboardSub}>
+              Scan a receipt to unlock personalized deals
+            </Text>
+            <Button
+              label="Scan Your First Receipt"
+              onPress={() => router.push('/(tabs)/scan')}
+              fullWidth
+              size="md"
+              variant="sand"
+              icon={<Ionicons name="scan-outline" size={18} color={Palette.bark} />}
+              style={{ marginTop: 16 }}
+            />
           </View>
-          <Button
-            label="Scan Your First Receipt"
-            onPress={() => router.push('/(tabs)/scan')}
-            fullWidth
-            size="md"
-            icon={<Ionicons name="scan-outline" size={18} color={Palette.paleMist} />}
-            style={{ marginTop: 16 }}
-          />
-        </View>
+        )}
 
+        {/* ── Deal feed section header ─────────────────── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Your Deal Feed</Text>
-          <Text style={styles.sectionSub}>Personalized after your first scan</Text>
-        </View>
-
-        <View style={styles.dealGrid}>
-          <View style={{ opacity: 0.45 }}><SkeletonDealCard organic={1} /></View>
-          <View style={{ opacity: 0.30 }}><SkeletonDealCard organic={2} /></View>
-          <View style={{ opacity: 0.18 }}><SkeletonDealCard organic={3} /></View>
-        </View>
-
-        <View style={styles.emptyState}>
-          <View style={styles.emptyIcon}>
-            <Text style={{ fontSize: 36 }}>🌿</Text>
-          </View>
-          <Text style={styles.emptyTitle}>Deals grow from receipts</Text>
-          <Text style={styles.emptyBody}>
-            Scan your first grocery receipt and SmartCart will surface deals on the exact items you buy — ranked by how often you buy them.
+          <Text style={styles.sectionTitle}>
+            {hasScanned ? 'Your Deals' : 'Featured Deals'}
           </Text>
-          <Button
-            label="Scan a Receipt"
-            variant="outline"
-            onPress={() => router.push('/(tabs)/scan')}
-            size="md"
-            style={{ marginTop: 20 }}
-          />
+          <Text style={styles.sectionSub}>
+            {hasScanned
+              ? 'Ranked by your shopping habits'
+              : 'Scan a receipt to personalize'
+            }
+          </Text>
         </View>
+
+        {/* ── Loading state ────────────────────────────── */}
+        {loading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Palette.moss500} />
+            <Text style={styles.loadingText}>Finding your deals...</Text>
+          </View>
+        )}
+
+        {/* ── Deal cards ───────────────────────────────── */}
+        {!loading && deals.length > 0 && (
+          <View style={styles.dealGrid}>
+            {deals.map((deal, index) => (
+              <DealCard
+                key={deal.id}
+                deal={deal}
+                organic={((index % 6) + 1) as 1 | 2 | 3 | 4 | 5 | 6}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* ── Empty state ──────────────────────────────── */}
+        {!loading && deals.length === 0 && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>🌿</Text>
+            <Text style={styles.emptyTitle}>No deals yet</Text>
+            <Text style={styles.emptyBody}>
+              Scan a receipt to start seeing personalized deals on items you already buy.
+            </Text>
+            <Button
+              label="Scan a Receipt"
+              variant="outline"
+              onPress={() => router.push('/(tabs)/scan')}
+              size="md"
+              style={{ marginTop: 20 }}
+            />
+          </View>
+        )}
       </ScrollView>
     </SafeScreen>
   );
@@ -124,7 +163,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   scroll: {
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
   header: {
     paddingHorizontal: 24,
@@ -165,7 +204,7 @@ const styles = StyleSheet.create({
   },
   onboardCard: {
     marginHorizontal:        20,
-    marginBottom:            28,
+    marginBottom:            24,
     backgroundColor:         Palette.moss500,
     borderTopLeftRadius:     48,
     borderTopRightRadius:    24,
@@ -177,7 +216,6 @@ const styles = StyleSheet.create({
     shadowOpacity:           0.25,
     shadowRadius:            20,
     elevation:               8,
-    overflow:                'hidden',
   },
   onboardTitle: {
     fontFamily:   Typography.heading,
@@ -186,53 +224,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   onboardSub: {
-    fontFamily:   Typography.body,
-    fontSize:     Typography.sm,
-    color:        `${Palette.paleMist}AA`,
-    marginBottom: 16,
-  },
-  stepsRow: {
-    flexDirection: 'row',
-    gap:           8,
-    flexWrap:      'wrap',
-  },
-  stepChip: {
-    flexDirection:     'row',
-    alignItems:        'center',
-    gap:               6,
-    backgroundColor:   `${Palette.white}18`,
-    borderRadius:      9999,
-    paddingVertical:   5,
-    paddingHorizontal: 10,
-    borderWidth:       1,
-    borderColor:       `${Palette.white}25`,
-  },
-  stepChipDone: {
-    backgroundColor: `${Palette.white}28`,
-  },
-  stepNum: {
-    width:           18,
-    height:          18,
-    borderRadius:    9,
-    backgroundColor: `${Palette.white}30`,
-    alignItems:      'center',
-    justifyContent:  'center',
-  },
-  stepNumDone: {
-    backgroundColor: Palette.clay500,
-  },
-  stepNumText: {
-    fontFamily: Typography.bodyBold,
-    fontSize:   10,
-    color:      Palette.paleMist,
-  },
-  stepLabel: {
-    fontFamily: Typography.bodySemi,
-    fontSize:   Typography.xs,
-    color:      `${Palette.paleMist}CC`,
-  },
-  stepLabelDone: {
-    color: Palette.paleMist,
+    fontFamily: Typography.body,
+    fontSize:   Typography.sm,
+    color:      `${Palette.paleMist}AA`,
   },
   sectionHeader: {
     paddingHorizontal: 24,
@@ -249,60 +243,28 @@ const styles = StyleSheet.create({
     color:      Colors.textMuted,
     marginTop:  2,
   },
+  loadingContainer: {
+    alignItems:     'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    gap:            12,
+  },
+  loadingText: {
+    fontFamily: Typography.body,
+    fontSize:   Typography.sm,
+    color:      Colors.textMuted,
+  },
   dealGrid: {
     paddingHorizontal: 20,
-    gap:               14,
-    marginBottom:      28,
-  },
-  skeletonCard: {
-    overflow: 'hidden',
-  },
-  skeletonImageArea: {
-    height:          120,
-    backgroundColor: Palette.stone,
-    position:        'relative',
-  },
-  skeletonImage: {
-    position:        'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: Palette.sand,
-  },
-  skeletonBadge: {
-    position:        'absolute',
-    top:             12,
-    right:           12,
-    width:           52,
-    height:          24,
-    borderRadius:    12,
-    backgroundColor: Palette.moss200,
-  },
-  skeletonLine: {
-    height:          12,
-    borderRadius:    6,
-    backgroundColor: Palette.stone,
-    marginBottom:    4,
-  },
-  skeletonPriceRow: {
-    flexDirection:  'row',
-    justifyContent: 'space-between',
-    alignItems:     'center',
-    marginTop:      8,
   },
   emptyState: {
     marginHorizontal: 24,
     alignItems:       'center',
-    paddingVertical:  8,
+    paddingVertical:  32,
   },
   emptyIcon: {
-    width:           80,
-    height:          80,
-    borderRadius:    40,
-    backgroundColor: `${Palette.moss500}12`,
-    alignItems:      'center',
-    justifyContent:  'center',
-    borderWidth:     1,
-    borderColor:     `${Palette.moss500}20`,
-    marginBottom:    20,
+    fontSize:     48,
+    marginBottom: 16,
   },
   emptyTitle: {
     fontFamily:   Typography.heading,
