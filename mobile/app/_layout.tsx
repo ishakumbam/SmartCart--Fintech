@@ -5,27 +5,39 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
 import {
   useFonts as useFraunces,
   Fraunces_600SemiBold,
   Fraunces_700Bold,
 } from '@expo-google-fonts/fraunces';
+
 import {
   useFonts as useNunito,
   Nunito_400Regular,
   Nunito_600SemiBold,
   Nunito_700Bold,
 } from '@expo-google-fonts/nunito';
+
 import { useAuthStore } from '@/store/authStore';
 import { queryClient } from '@/lib/queryClient';
+import { registerForPushNotifications } from '@/lib/notificationService';
 
 SplashScreen.preventAutoHideAsync();
 
 function AuthGate() {
-  const { isAuthenticated, isLoading, loadAuth } = useAuthStore();
+  const { isAuthenticated, isLoading, loadAuth, user } = useAuthStore();
   const segments = useSegments();
 
-  useEffect(() => { loadAuth(); }, []);
+  useEffect(() => {
+    loadAuth();
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      registerForPushNotifications(user.id);
+    }
+  }, [isAuthenticated, user]);
 
   useEffect(() => {
     if (isLoading) return;

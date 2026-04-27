@@ -16,6 +16,9 @@ import { uploadAndParseReceipt, saveReceipt, ParsedReceipt } from '@/lib/receipt
 import { supabase } from '@/lib/supabase';
 import { Typography, Palette, Colors } from '@/constants/theme';
 import { updateBuyProfile } from '@/lib/habitService';
+import { getBuyProfile } from '@/lib/habitService';
+import { getPersonalizedDeals } from '@/lib/dealService';
+import { notifyDealMatch, saveNotification } from '@/lib/notificationService';
 
 type ScanState = 'idle' | 'camera' | 'processing' | 'review' | 'done';
 
@@ -53,8 +56,28 @@ export default function ScanScreen() {
     try {
       setSaving(true);
       const receipt = await saveReceipt(user.id, capturedUri, parsed);
-      // Update habit engine after saving
       await updateBuyProfile(user.id, receipt.id);
+
+      // Check for matching deals and notify
+      const buyProfile = await getBuyProfile(user.id);
+      const deals      = await getPersonalizedDeals(user.id, buyProfile, 5);
+      const topDeal    = deals.find(d => d.frequencyScore > 0);
+
+      if (topDeal) {
+        await notifyDealMatch(
+          topDeal.item,
+          topDeal.store,
+          topDeal.savings,
+          topDeal.id,
+        );
+        await saveNotification(
+          user.id,
+          `💰 Deal on ${topDeal.item}!`,
+          `Save $${topDeal.savings.toFixed(2)} at ${topDeal.store} this week`,
+          topDeal.id,
+        );
+      }
+
       setScanState('done');
     } catch (err: any) {
       Alert.alert('Error', err.message ?? 'Failed to save receipt.');
