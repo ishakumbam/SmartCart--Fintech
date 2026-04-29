@@ -46,12 +46,17 @@ function AuthGate() {
   useEffect(() => {
     if (isLoading) return;
     SplashScreen.hideAsync();
-    const inAuthGroup = segments[0] === '(auth)';
+
+    const inAuthGroup  = segments[0] === '(auth)';
+    const inOnboarding = segments[0] === 'onboarding';
+    const inTabs       = segments[0] === '(tabs)';
+
     if (!isAuthenticated && !inAuthGroup) {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
-      router.replace('/(tabs)');
+      router.replace('/onboarding');
     }
+    // Already in tabs or onboarding — do nothing
   }, [isAuthenticated, isLoading, segments]);
 
   return null;
@@ -83,8 +88,12 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <AuthGate />
           <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
-            <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+            <Stack.Screen name="(auth)"     options={{ animation: 'fade' }} />
+            <Stack.Screen name="(tabs)"     options={{ animation: 'fade' }} />
+            <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
+            <Stack.Screen name="history"    options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="privacy"    options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="terms"      options={{ animation: 'slide_from_right' }} />
           </Stack>
           <StatusBar style="dark" backgroundColor="transparent" translucent />
         </QueryClientProvider>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,16 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  useColorScheme,
+  Appearance,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Slider from '@react-native-community/slider';
 import { SafeScreen } from '@/components/ui/SafeScreen';
 import { useAuthStore } from '@/store/authStore';
+import { supabase } from '@/lib/supabase';
 import { Colors, Typography, Palette, Shadows } from '@/constants/theme';
+import { router } from 'expo-router';
 
 interface SettingRowProps {
   icon:      keyof typeof Ionicons.glyphMap;
@@ -68,7 +73,44 @@ function SettingSection({ title, children }: { title: string; children: React.Re
 }
 
 export default function SettingsScreen() {
-  const { user, clearAuth } = useAuthStore();
+  const { user, clearAuth, updateUser } = useAuthStore();
+
+  // Settings state
+  const [radius,        setRadius]        = useState(10);
+  const [dealAlerts,    setDealAlerts]    = useState(true);
+  const [weeklyDigest,  setWeeklyDigest]  = useState(false);
+  const [darkMode,      setDarkMode]      = useState(false);
+  const [saving,        setSaving]        = useState(false);
+
+  // Load settings from Supabase on mount
+  useEffect(() => {
+    loadSettings();
+  }, [user]);
+
+  const loadSettings = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('radius_miles')
+      .eq('id', user.id)
+      .single();
+
+    if (data?.radius_miles) setRadius(data.radius_miles);
+  };
+
+  const saveRadius = async (value: number) => {
+    if (!user) return;
+    setRadius(value);
+    await supabase
+      .from('profiles')
+      .update({ radius_miles: value })
+      .eq('id', user.id);
+  };
+
+  const handleDarkMode = (value: boolean) => {
+    setDarkMode(value);
+    Appearance.setColorScheme(value ? 'dark' : 'light');
+  };
 
   const handleSignOut = () => {
     Alert.alert(
@@ -81,19 +123,44 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account and all data. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text:    'Delete',
+          style:   'destructive',
+          onPress: async () => {
+            try {
+              await supabase.from('profiles').delete().eq('id', user!.id);
+              await supabase.auth.signOut();
+              clearAuth();
+            } catch (err) {
+              Alert.alert('Error', 'Failed to delete account. Please try again.');
+            }
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <SafeScreen blobs={[
-      { variant: 4, color: 'moss', size: 260, top: -80,  right: -100, opacity: 0.20 },
-      { variant: 2, color: 'sand', size: 200, bottom: 40, left: -70,  opacity: 0.25 },
+      { variant: 4, color: 'moss', size: 260, top: -80,   right: -100, opacity: 0.20 },
+      { variant: 2, color: 'sand', size: 200, bottom: 40, left: -70,   opacity: 0.25 },
     ]}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
+        {/* ── Header ──────────────────────────────────── */}
         <View style={styles.header}>
           <Text style={styles.heading}>Settings</Text>
         </View>
 
+        {/* ── Profile card ────────────────────────────── */}
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
@@ -104,30 +171,100 @@ export default function SettingsScreen() {
             <Text style={styles.profileName}>{user?.name ?? 'Anonymous'}</Text>
             <Text style={styles.profileEmail}>{user?.email}</Text>
           </View>
-          <TouchableOpacity style={styles.editBtn}>
-            <Ionicons name="pencil-outline" size={16} color={Palette.moss500} />
-          </TouchableOpacity>
         </View>
 
+        {/* ── Deal Preferences ────────────────────────── */}
         <SettingSection title="Deal Preferences">
-          <SettingRow icon="location-outline"  label="Search Radius" value="10 miles" onPress={() => {}} />
-          <SettingRow icon="pricetag-outline"  label="Categories"    value="All"      onPress={() => {}} last />
+          {/* Radius slider */}
+          <View style={styles.sliderRow}>
+            <View style={styles.sliderHeader}>
+              <View style={[styles.rowIcon]}>
+                <Ionicons name="location-outline" size={18} color={Palette.moss500} />
+              </View>
+              <Text style={styles.rowLabel}>Search Radius</Text>
+              <Text style={styles.radiusValue}>{radius} mi</Text>
+            </View>
+            <Slider
+              style={styles.slider}
+              minimumValue={1}
+              maximumValue={50}
+              step={1}
+              value={radius}
+              onSlidingComplete={saveRadius}
+              onValueChange={setRadius}
+              minimumTrackTintColor={Palette.moss500}
+              maximumTrackTintColor={Palette.rawTimber}
+              thumbTintColor={Palette.moss500}
+            />
+            <View style={styles.sliderLabels}>
+              <Text style={styles.sliderLabel}>1 mi</Text>
+              <Text style={styles.sliderLabel}>50 mi</Text>
+            </View>
+          </View>
         </SettingSection>
 
+        {/* ── Notifications ───────────────────────────── */}
         <SettingSection title="Notifications">
-          <SettingRow icon="notifications-outline" label="Deal Alerts"    toggle toggled={true}  onToggle={() => {}} />
-          <SettingRow icon="refresh-outline"       label="Weekly Digest"  toggle toggled={false} onToggle={() => {}} last />
+          <SettingRow
+            icon="notifications-outline"
+            label="Deal Alerts"
+            toggle
+            toggled={dealAlerts}
+            onToggle={(v) => {
+              setDealAlerts(v);
+              Alert.alert(v ? 'Deal alerts enabled' : 'Deal alerts disabled');
+            }}
+          />
+          <SettingRow
+            icon="refresh-outline"
+            label="Weekly Digest"
+            toggle
+            toggled={weeklyDigest}
+            onToggle={(v) => {
+              setWeeklyDigest(v);
+              Alert.alert(v ? 'Weekly digest enabled' : 'Weekly digest disabled');
+            }}
+            last
+          />
         </SettingSection>
 
+        {/* ── App ─────────────────────────────────────── */}
         <SettingSection title="App">
-          <SettingRow icon="moon-outline"              label="Dark Mode"       toggle toggled={false} onToggle={() => {}} />
-          <SettingRow icon="shield-checkmark-outline"  label="Privacy Policy"  onPress={() => {}} />
-          <SettingRow icon="document-text-outline"     label="Terms of Service" onPress={() => {}} last />
+          <SettingRow
+            icon="moon-outline"
+            label="Dark Mode"
+            toggle
+            toggled={darkMode}
+            onToggle={handleDarkMode}
+          />
+          <SettingRow
+            icon="shield-checkmark-outline"
+            label="Privacy Policy"
+            onPress={() => router.push('/privacy')}
+          />
+         <SettingRow
+            icon="document-text-outline"
+            label="Terms of Service"
+            onPress={() => router.push('/terms')}
+            last
+          />
         </SettingSection>
 
+        {/* ── Account ─────────────────────────────────── */}
         <SettingSection title="Account">
-          <SettingRow icon="log-out-outline" label="Sign Out"       onPress={handleSignOut}                                    danger />
-          <SettingRow icon="trash-outline"   label="Delete Account" onPress={() => Alert.alert('Coming soon')} danger last />
+          <SettingRow
+            icon="log-out-outline"
+            label="Sign Out"
+            onPress={handleSignOut}
+            danger
+          />
+          <SettingRow
+            icon="trash-outline"
+            label="Delete Account"
+            onPress={handleDeleteAccount}
+            danger
+            last
+          />
         </SettingSection>
 
         <Text style={styles.version}>SmartCart v1.0.0</Text>
@@ -138,7 +275,7 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   scroll: {
-    paddingBottom: 48,
+    paddingBottom: 100,
   },
   header: {
     paddingHorizontal: 24,
@@ -189,14 +326,6 @@ const styles = StyleSheet.create({
     fontSize:   Typography.sm,
     color:      Colors.textMuted,
     marginTop:  2,
-  },
-  editBtn: {
-    width:           36,
-    height:          36,
-    borderRadius:    18,
-    backgroundColor: `${Palette.moss500}12`,
-    alignItems:      'center',
-    justifyContent:  'center',
   },
   section: {
     marginHorizontal: 20,
@@ -258,6 +387,35 @@ const styles = StyleSheet.create({
   rowValue: {
     fontFamily: Typography.body,
     fontSize:   Typography.sm,
+    color:      Colors.textMuted,
+  },
+  sliderRow: {
+    paddingHorizontal: 16,
+    paddingVertical:   14,
+  },
+  sliderHeader: {
+    flexDirection:  'row',
+    alignItems:     'center',
+    gap:            12,
+    marginBottom:   12,
+  },
+  radiusValue: {
+    fontFamily: Typography.bodyBold,
+    fontSize:   Typography.sm,
+    color:      Palette.moss500,
+  },
+  slider: {
+    width:  '100%',
+    height: 40,
+  },
+  sliderLabels: {
+    flexDirection:  'row',
+    justifyContent: 'space-between',
+    marginTop:      -8,
+  },
+  sliderLabel: {
+    fontFamily: Typography.body,
+    fontSize:   Typography.xs,
     color:      Colors.textMuted,
   },
   version: {
