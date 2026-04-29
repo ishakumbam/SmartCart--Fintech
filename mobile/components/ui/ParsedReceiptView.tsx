@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ParsedReceipt, ParsedItem } from '@/lib/receiptService';
-import { Palette, Typography, Colors } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { Palette, Typography } from '@/constants/theme';
 
 interface ParsedReceiptViewProps {
   parsed:    ParsedReceipt;
@@ -25,7 +26,8 @@ export function ParsedReceiptView({
   onDiscard,
   saving,
 }: ParsedReceiptViewProps) {
-  const [receipt, setReceipt] = useState<ParsedReceipt>(parsed);
+  const { theme }                     = useTheme();
+  const [receipt, setReceipt]         = useState<ParsedReceipt>(parsed);
 
   const updateItem = (index: number, updates: Partial<ParsedItem>) => {
     const items = [...receipt.items];
@@ -39,13 +41,16 @@ export function ParsedReceiptView({
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onDiscard} style={styles.discardBtn}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* ── Header ──────────────────────────────────── */}
+      <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: `${theme.border}55` }]}>
+        <TouchableOpacity
+          onPress={onDiscard}
+          style={[styles.discardBtn, { backgroundColor: `${Palette.moss500}15` }]}
+        >
           <Ionicons name="arrow-back" size={20} color={Palette.moss500} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Review Receipt</Text>
+        <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Review Receipt</Text>
         <TouchableOpacity
           style={[styles.saveBtn, saving && { opacity: 0.6 }]}
           onPress={() => onSave(receipt)}
@@ -62,45 +67,45 @@ export function ParsedReceiptView({
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        {/* Store info */}
-        <View style={styles.storeCard}>
-          <View style={styles.storeRow}>
-            <Text style={styles.storeLabel}>Store</Text>
-            <Text style={styles.storeValue}>
+        {/* ── Store info ──────────────────────────────── */}
+        <View style={[styles.storeCard, { backgroundColor: theme.cardBackground, borderColor: `${theme.border}55` }]}>
+          <View style={[styles.storeRow, { borderBottomColor: `${theme.border}33` }]}>
+            <Text style={[styles.storeLabel, { color: theme.textMuted }]}>Store</Text>
+            <Text style={[styles.storeValue, { color: theme.textPrimary }]}>
               {receipt.storeName || 'Unknown Store'}
             </Text>
           </View>
-          <View style={styles.storeRow}>
-            <Text style={styles.storeLabel}>Date</Text>
-            <Text style={styles.storeValue}>
+          <View style={[styles.storeRow, { borderBottomColor: `${theme.border}33` }]}>
+            <Text style={[styles.storeLabel, { color: theme.textMuted }]}>Date</Text>
+            <Text style={[styles.storeValue, { color: theme.textPrimary }]}>
               {receipt.purchaseDate || 'Unknown Date'}
             </Text>
           </View>
           <View style={[styles.storeRow, { borderBottomWidth: 0 }]}>
-            <Text style={styles.storeLabel}>Total</Text>
+            <Text style={[styles.storeLabel, { color: theme.textMuted }]}>Total</Text>
             <Text style={styles.storeTotalValue}>
               ${receipt.total?.toFixed(2) ?? '0.00'}
             </Text>
           </View>
         </View>
 
-        {/* Items */}
-        <Text style={styles.sectionTitle}>
+        {/* ── Items ───────────────────────────────────── */}
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
           Line Items ({receipt.items.length})
         </Text>
-        <Text style={styles.sectionHint}>
+        <Text style={[styles.sectionHint, { color: theme.textMuted }]}>
           Tap any item to edit or remove it
         </Text>
 
         {receipt.items.map((item, index) => (
-          <View key={index} style={styles.itemCard}>
+          <View key={index} style={[styles.itemCard, { backgroundColor: theme.cardBackground, borderColor: `${theme.border}55` }]}>
             <View style={styles.itemRow}>
               <TextInput
-                style={styles.itemName}
+                style={[styles.itemName, { color: theme.textPrimary }]}
                 value={item.rawName}
                 onChangeText={(text) => updateItem(index, { rawName: text })}
                 placeholder="Item name"
-                placeholderTextColor={Palette.driedGrass}
+                placeholderTextColor={theme.textMuted}
               />
               <TouchableOpacity
                 onPress={() => removeItem(index)}
@@ -110,16 +115,16 @@ export function ParsedReceiptView({
               </TouchableOpacity>
             </View>
             <View style={styles.itemMeta}>
-              <Text style={styles.itemMetaLabel}>Qty:</Text>
+              <Text style={[styles.itemMetaLabel, { color: theme.textMuted }]}>Qty:</Text>
               <TextInput
-                style={styles.itemMetaInput}
+                style={[styles.itemMetaInput, { color: theme.textPrimary, backgroundColor: theme.surfaceAlt }]}
                 value={String(item.quantity)}
                 onChangeText={(text) => updateItem(index, { quantity: parseFloat(text) || 1 })}
                 keyboardType="numeric"
               />
-              <Text style={styles.itemMetaLabel}>Price:</Text>
+              <Text style={[styles.itemMetaLabel, { color: theme.textMuted }]}>Price:</Text>
               <TextInput
-                style={styles.itemMetaInput}
+                style={[styles.itemMetaInput, { color: theme.textPrimary, backgroundColor: theme.surfaceAlt }]}
                 value={String(item.unitPrice)}
                 onChangeText={(text) => updateItem(index, { unitPrice: parseFloat(text) || 0 })}
                 keyboardType="numeric"
@@ -130,7 +135,7 @@ export function ParsedReceiptView({
 
         {receipt.items.length === 0 && (
           <View style={styles.emptyItems}>
-            <Text style={styles.emptyItemsText}>
+            <Text style={[styles.emptyItemsText, { color: theme.textMuted }]}>
               No items detected. Try scanning again with better lighting.
             </Text>
           </View>
@@ -142,8 +147,7 @@ export function ParsedReceiptView({
 
 const styles = StyleSheet.create({
   container: {
-    flex:            1,
-    backgroundColor: Palette.ricePaper,
+    flex: 1,
   },
   header: {
     flexDirection:     'row',
@@ -152,22 +156,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop:        60,
     paddingBottom:     16,
-    backgroundColor:   Palette.ricePaper,
     borderBottomWidth: 1,
-    borderBottomColor: `${Palette.rawTimber}55`,
   },
   discardBtn: {
-    width:           40,
-    height:          40,
-    borderRadius:    20,
-    backgroundColor: `${Palette.moss500}15`,
-    alignItems:      'center',
-    justifyContent:  'center',
+    width:          40,
+    height:         40,
+    borderRadius:   20,
+    alignItems:     'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontFamily: Typography.heading,
     fontSize:   Typography.xl,
-    color:      Palette.loam,
   },
   saveBtn: {
     backgroundColor:   Palette.moss500,
@@ -187,12 +187,10 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
   },
   storeCard: {
-    backgroundColor: '#FEFEFA',
-    borderRadius:    20,
-    borderWidth:     1,
-    borderColor:     `${Palette.rawTimber}55`,
-    marginBottom:    24,
-    overflow:        'hidden',
+    borderRadius: 20,
+    borderWidth:  1,
+    marginBottom: 24,
+    overflow:     'hidden',
   },
   storeRow: {
     flexDirection:     'row',
@@ -201,17 +199,14 @@ const styles = StyleSheet.create({
     paddingVertical:   12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: `${Palette.rawTimber}33`,
   },
   storeLabel: {
     fontFamily: Typography.bodySemi,
     fontSize:   Typography.sm,
-    color:      Colors.textMuted,
   },
   storeValue: {
     fontFamily: Typography.bodySemi,
     fontSize:   Typography.sm,
-    color:      Palette.loam,
   },
   storeTotalValue: {
     fontFamily: Typography.heading,
@@ -221,22 +216,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily:   Typography.heading,
     fontSize:     Typography.lg,
-    color:        Palette.loam,
     marginBottom: 4,
   },
   sectionHint: {
     fontFamily:   Typography.body,
     fontSize:     Typography.xs,
-    color:        Colors.textMuted,
     marginBottom: 16,
   },
   itemCard: {
-    backgroundColor: '#FEFEFA',
-    borderRadius:    16,
-    borderWidth:     1,
-    borderColor:     `${Palette.rawTimber}55`,
-    padding:         12,
-    marginBottom:    10,
+    borderRadius: 16,
+    borderWidth:  1,
+    padding:      12,
+    marginBottom: 10,
   },
   itemRow: {
     flexDirection:  'row',
@@ -245,10 +236,9 @@ const styles = StyleSheet.create({
     marginBottom:   8,
   },
   itemName: {
-    fontFamily: Typography.bodySemi,
-    fontSize:   Typography.sm,
-    color:      Palette.loam,
-    flex:       1,
+    fontFamily:  Typography.bodySemi,
+    fontSize:    Typography.sm,
+    flex:        1,
     marginRight: 8,
   },
   itemMeta: {
@@ -259,26 +249,22 @@ const styles = StyleSheet.create({
   itemMetaLabel: {
     fontFamily: Typography.body,
     fontSize:   Typography.xs,
-    color:      Colors.textMuted,
   },
   itemMetaInput: {
     fontFamily:        Typography.bodySemi,
     fontSize:          Typography.xs,
-    color:             Palette.loam,
-    backgroundColor:   Palette.stone,
     borderRadius:      8,
     paddingHorizontal: 8,
     paddingVertical:   4,
     minWidth:          48,
   },
   emptyItems: {
-    alignItems:   'center',
+    alignItems:      'center',
     paddingVertical: 32,
   },
   emptyItemsText: {
     fontFamily: Typography.body,
     fontSize:   Typography.sm,
-    color:      Colors.textMuted,
     textAlign:  'center',
     lineHeight: 20,
   },

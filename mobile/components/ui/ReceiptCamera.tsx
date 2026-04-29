@@ -69,61 +69,66 @@ export function ReceiptCamera({ onCapture, onClose }: ReceiptCameraProps) {
 
   return (
     <View style={styles.container}>
-      <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-            <Ionicons name="close" size={24} color="white" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Scan Receipt</Text>
-          <View style={{ width: 40 }} />
+      {/* Camera — no children */}
+      <CameraView ref={cameraRef} style={styles.camera} facing={facing} />
+
+      {/* Header — absolutely positioned over camera */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+          <Ionicons name="close" size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Scan Receipt</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      {/* Alignment overlay — absolutely positioned */}
+      <View style={styles.overlay} pointerEvents="none">
+        <View style={styles.scanFrame}>
+          <View style={[styles.corner, styles.topLeft]} />
+          <View style={[styles.corner, styles.topRight]} />
+          <View style={[styles.corner, styles.bottomLeft]} />
+          <View style={[styles.corner, styles.bottomRight]} />
         </View>
+        <Text style={styles.hint}>Align receipt within the frame</Text>
+      </View>
 
-        {/* Alignment overlay */}
-        <View style={styles.overlay}>
-          <View style={styles.scanFrame}>
-            <View style={[styles.corner, styles.topLeft]} />
-            <View style={[styles.corner, styles.topRight]} />
-            <View style={[styles.corner, styles.bottomLeft]} />
-            <View style={[styles.corner, styles.bottomRight]} />
-          </View>
-          <Text style={styles.hint}>Align receipt within the frame</Text>
-        </View>
+      {/* Controls — absolutely positioned */}
+      <View style={styles.controls}>
+        <TouchableOpacity style={styles.galleryBtn} onPress={pickFromGallery}>
+          <Ionicons name="images-outline" size={24} color="white" />
+          <Text style={styles.galleryText}>Gallery</Text>
+        </TouchableOpacity>
 
-        {/* Controls */}
-        <View style={styles.controls}>
-          <TouchableOpacity style={styles.galleryBtn} onPress={pickFromGallery}>
-            <Ionicons name="images-outline" size={24} color="white" />
-            <Text style={styles.galleryText}>Gallery</Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.captureBtn}
+          onPress={takePicture}
+          disabled={capturing}
+        >
+          {capturing
+            ? <ActivityIndicator color={Palette.moss500} />
+            : <View style={styles.captureBtnInner} />
+          }
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.captureBtn}
-            onPress={takePicture}
-            disabled={capturing}
-          >
-            {capturing
-              ? <ActivityIndicator color={Palette.moss500} />
-              : <View style={styles.captureBtnInner} />
-            }
-          </TouchableOpacity>
-
-          <View style={{ width: 64 }} />
-        </View>
-      </CameraView>
+        <View style={{ width: 64 }} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flex:            1,
     backgroundColor: '#000',
   },
   camera: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
   },
   header: {
+    position:          'absolute',
+    top:               0,
+    left:              0,
+    right:             0,
     flexDirection:     'row',
     alignItems:        'center',
     justifyContent:    'space-between',
@@ -145,14 +150,18 @@ const styles = StyleSheet.create({
     color:      'white',
   },
   overlay: {
-    flex:           1,
+    position:       'absolute',
+    top:            0,
+    left:           0,
+    right:          0,
+    bottom:         0,
     alignItems:     'center',
     justifyContent: 'center',
   },
   scanFrame: {
-    width:         300,
-    height:        400,
-    position:      'relative',
+    width:    300,
+    height:   400,
+    position: 'relative',
   },
   corner: {
     position:    'absolute',
@@ -162,36 +171,40 @@ const styles = StyleSheet.create({
     borderWidth: 3,
   },
   topLeft: {
-    top:         0,
-    left:        0,
+    top:              0,
+    left:             0,
     borderRightWidth: 0,
     borderBottomWidth: 0,
   },
   topRight: {
-    top:        0,
-    right:      0,
+    top:             0,
+    right:           0,
     borderLeftWidth: 0,
     borderBottomWidth: 0,
   },
   bottomLeft: {
-    bottom:     0,
-    left:       0,
+    bottom:           0,
+    left:             0,
     borderRightWidth: 0,
-    borderTopWidth: 0,
+    borderTopWidth:   0,
   },
   bottomRight: {
-    bottom:    0,
-    right:     0,
+    bottom:          0,
+    right:           0,
     borderLeftWidth: 0,
-    borderTopWidth: 0,
+    borderTopWidth:  0,
   },
   hint: {
-    fontFamily:  Typography.body,
-    fontSize:    Typography.sm,
-    color:       'rgba(255,255,255,0.8)',
-    marginTop:   16,
+    fontFamily: Typography.body,
+    fontSize:   Typography.sm,
+    color:      'rgba(255,255,255,0.8)',
+    marginTop:  16,
   },
   controls: {
+    position:          'absolute',
+    bottom:            0,
+    left:              0,
+    right:             0,
     flexDirection:     'row',
     alignItems:        'center',
     justifyContent:    'space-between',

@@ -3,6 +3,7 @@ import { View, StyleSheet, Platform } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Palette } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -22,16 +23,43 @@ const TABS: TabConfig[] = [
 ];
 
 export default function TabLayout() {
+  const { theme, isDark } = useTheme();
+
   return (
     <Tabs
       safeAreaInsets={{ bottom: 0 }}
       screenOptions={{
         headerShown:             false,
-        tabBarActiveTintColor:   Colors.tabActive,
-        tabBarInactiveTintColor: Colors.tabInactive,
-        tabBarStyle:             styles.tabBar,
-        tabBarLabelStyle:        styles.tabLabel,
-        tabBarItemStyle:         styles.tabItem,
+        tabBarActiveTintColor:   Palette.moss500,
+        tabBarInactiveTintColor: isDark ? '#78786C' : Colors.tabInactive,
+        tabBarStyle: {
+          backgroundColor:      theme.tabBackground,
+          borderTopWidth:       0,
+          borderTopLeftRadius:  24,
+          borderTopRightRadius: 24,
+          shadowColor:          Palette.moss500,
+          shadowOffset:         { width: 0, height: -4 },
+          shadowOpacity:        0.08,
+          shadowRadius:         16,
+          elevation:            12,
+          height:               Platform.OS === 'ios' ? 90 : 68,
+          paddingTop:           10,
+          paddingBottom:        Platform.OS === 'ios' ? 30 : 10,
+          borderTopColor:       theme.border,
+          position:             'absolute',
+          bottom:               0,
+          left:                 0,
+          right:                0,
+        },
+        tabBarLabelStyle: {
+          fontFamily:    Typography.bodySemi,
+          fontSize:      10,
+          letterSpacing: 0.3,
+          marginTop:     2,
+        },
+        tabBarItemStyle: {
+          paddingTop: 4,
+        },
       }}
     >
       {TABS.map(({ name, title, icon, activeIcon }) => (
@@ -41,11 +69,14 @@ export default function TabLayout() {
           options={{
             title,
             tabBarIcon: ({ focused }) => (
-              <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+              <View style={[
+                styles.iconWrap,
+                focused && { backgroundColor: `${Palette.moss500}14` },
+              ]}>
                 <Ionicons
                   name={focused ? activeIcon : icon}
                   size={22}
-                  color={focused ? Palette.moss500 : Colors.tabInactive}
+                  color={focused ? Palette.moss500 : (isDark ? '#78786C' : Colors.tabInactive)}
                 />
               </View>
             ),
@@ -57,42 +88,11 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor:      '#FEFEFA',
-    borderTopWidth:       0,
-    borderTopLeftRadius:  24,
-    borderTopRightRadius: 24,
-    shadowColor:          Palette.moss500,
-    shadowOffset:         { width: 0, height: -4 },
-    shadowOpacity:        0.08,
-    shadowRadius:         16,
-    elevation:            12,
-    height:               Platform.OS === 'ios' ? 90 : 68,
-    paddingTop:           10,
-    paddingBottom:        Platform.OS === 'ios' ? 30 : 10,
-    borderTopColor:       `${Palette.rawTimber}55`,
-    position:             'absolute',
-    bottom:               0,
-    left:                 0,
-    right:                0,
-  },
-  tabLabel: {
-    fontFamily:    Typography.bodySemi,
-    fontSize:      10,
-    letterSpacing: 0.3,
-    marginTop:     2,
-  },
-  tabItem: {
-    paddingTop: 4,
-  },
   iconWrap: {
-    width:           36,
-    height:          30,
-    borderRadius:    15,
-    alignItems:      'center',
-    justifyContent:  'center',
-  },
-  iconWrapActive: {
-    backgroundColor: `${Palette.moss500}14`,
+    width:          36,
+    height:         30,
+    borderRadius:   15,
+    alignItems:     'center',
+    justifyContent: 'center',
   },
 });

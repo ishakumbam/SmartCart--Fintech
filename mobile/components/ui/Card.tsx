@@ -5,7 +5,8 @@ import {
   TouchableOpacity,
   TouchableOpacityProps,
 } from 'react-native';
-import { Colors, Radius, Shadows, Palette } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { Radius, Shadows } from '@/constants/theme';
 
 export type CardOrganic = 1 | 2 | 3 | 4 | 5 | 6 | 'default';
 
@@ -37,6 +38,7 @@ export function Card({
   padded      = true,
   pressProps,
 }: CardProps) {
+  const { theme } = useTheme();
   const radiusStyle = organic === 'default'
     ? { borderRadius: Radius['2xl'] }
     : ORGANIC_RADII[organic];
@@ -44,6 +46,10 @@ export function Card({
   const cardStyle = [
     styles.card,
     radiusStyle,
+    {
+      backgroundColor: theme.cardBackground,
+      borderColor:     theme.borderSubtle,
+    },
     padded && styles.padded,
     accentColor && { borderLeftWidth: 3, borderLeftColor: accentColor },
     style,
@@ -72,8 +78,16 @@ export function SectionCard({
   children: React.ReactNode;
   style?:   object;
 }) {
+  const { theme } = useTheme();
   return (
-    <View style={[styles.section, style]}>
+    <View style={[
+      styles.section,
+      {
+        backgroundColor: theme.background,
+        borderColor:     `${theme.border}55`,
+      },
+      style,
+    ]}>
       {children}
     </View>
   );
@@ -81,21 +95,17 @@ export function SectionCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FEFEFA',
-    borderWidth:     1,
-    borderColor:     `${Palette.rawTimber}80`,
-    overflow:        'hidden',
+    borderWidth: 1,
+    overflow:    'hidden',
     ...Shadows.soft,
   },
   padded: {
     padding: 20,
   },
   section: {
-    backgroundColor: Colors.background,
-    borderRadius:    Radius['3xl'],
-    padding:         20,
-    borderWidth:     1,
-    borderColor:     `${Palette.rawTimber}55`,
+    borderRadius: Radius['3xl'],
+    padding:      20,
+    borderWidth:  1,
     ...Shadows.subtle,
   },
 });

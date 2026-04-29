@@ -18,12 +18,14 @@ import { useAuthStore } from '@/store/authStore';
 import { getBuyProfile } from '@/lib/habitService';
 import { getPersonalizedDeals, Deal } from '@/lib/dealService';
 import { getCurrentLocation, saveUserLocation } from '@/lib/locationService';
-import { Colors, Typography, Palette } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { Typography, Palette } from '@/constants/theme';
 
 type FeedTab = 'foryou' | 'other';
 
 export default function HomeScreen() {
   const { user }                        = useAuthStore();
+  const { theme }                       = useTheme();
   const firstName                       = user?.name?.split(' ')[0] ?? 'there';
   const [deals, setDeals]               = useState<Deal[]>([]);
   const [loading, setLoading]           = useState(true);
@@ -88,15 +90,17 @@ export default function HomeScreen() {
         {/* ── Header ──────────────────────────────────── */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Hey {firstName} 👋</Text>
-            <Text style={styles.tagline}>
+            <Text style={[styles.greeting, { color: theme.textPrimary }]}>
+              Hey {firstName} 👋
+            </Text>
+            <Text style={[styles.tagline, { color: theme.textMuted }]}>
               {hasScanned
                 ? `${forYouDeals.length} deals matched to your habits`
                 : 'The Expedia of everyday shopping'
               }
             </Text>
           </View>
-          <TouchableOpacity style={styles.locationChip}>
+          <TouchableOpacity style={[styles.locationChip, { backgroundColor: `${Palette.moss500}12`, borderColor: `${Palette.moss500}25` }]}>
             <Ionicons name="location-outline" size={14} color={Palette.moss500} />
             <Text style={styles.locationText}>{locationName}</Text>
           </TouchableOpacity>
@@ -122,20 +126,20 @@ export default function HomeScreen() {
         )}
 
         {/* ── Toggle tabs ──────────────────────────────── */}
-        <View style={styles.tabRow}>
+        <View style={[styles.tabRow, { backgroundColor: theme.surfaceAlt }]}>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'foryou' && styles.tabActive]}
+            style={[styles.tab, activeTab === 'foryou' && [styles.tabActive, { backgroundColor: theme.surface }]]}
             onPress={() => setActiveTab('foryou')}
           >
-            <Text style={[styles.tabText, activeTab === 'foryou' && styles.tabTextActive]}>
+            <Text style={[styles.tabText, { color: activeTab === 'foryou' ? theme.textPrimary : theme.textMuted }]}>
               🎯 For You {forYouDeals.length > 0 ? `(${forYouDeals.length})` : ''}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'other' && styles.tabActive]}
+            style={[styles.tab, activeTab === 'other' && [styles.tabActive, { backgroundColor: theme.surface }]]}
             onPress={() => setActiveTab('other')}
           >
-            <Text style={[styles.tabText, activeTab === 'other' && styles.tabTextActive]}>
+            <Text style={[styles.tabText, { color: activeTab === 'other' ? theme.textPrimary : theme.textMuted }]}>
               🛒 All Deals {otherDeals.length > 0 ? `(${otherDeals.length})` : ''}
             </Text>
           </TouchableOpacity>
@@ -145,7 +149,9 @@ export default function HomeScreen() {
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Palette.moss500} />
-            <Text style={styles.loadingText}>Finding your deals...</Text>
+            <Text style={[styles.loadingText, { color: theme.textMuted }]}>
+              Finding your deals...
+            </Text>
           </View>
         )}
 
@@ -168,10 +174,10 @@ export default function HomeScreen() {
             <Text style={styles.emptyIcon}>
               {activeTab === 'foryou' ? '🎯' : '🌿'}
             </Text>
-            <Text style={styles.emptyTitle}>
+            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>
               {activeTab === 'foryou' ? 'No matches yet' : 'No deals yet'}
             </Text>
-            <Text style={styles.emptyBody}>
+            <Text style={[styles.emptyBody, { color: theme.textMuted }]}>
               {activeTab === 'foryou'
                 ? 'Scan more receipts so we can match deals to what you actually buy.'
                 : 'Check back soon for new deals in your area.'
@@ -208,25 +214,21 @@ const styles = StyleSheet.create({
   greeting: {
     fontFamily: Typography.heading,
     fontSize:   Typography['2xl'],
-    color:      Palette.loam,
     lineHeight: 30,
   },
   tagline: {
     fontFamily: Typography.body,
     fontSize:   Typography.sm,
-    color:      Colors.textMuted,
     marginTop:  2,
   },
   locationChip: {
     flexDirection:     'row',
     alignItems:        'center',
-    backgroundColor:   `${Palette.moss500}12`,
     borderRadius:      9999,
     paddingVertical:   6,
     paddingHorizontal: 12,
     gap:               4,
     borderWidth:       1,
-    borderColor:       `${Palette.moss500}25`,
     marginTop:         4,
   },
   locationText: {
@@ -264,7 +266,6 @@ const styles = StyleSheet.create({
     flexDirection:    'row',
     marginHorizontal: 20,
     marginBottom:     20,
-    backgroundColor:  Palette.stone,
     borderRadius:     9999,
     padding:          4,
   },
@@ -276,20 +277,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabActive: {
-    backgroundColor: '#FEFEFA',
-    shadowColor:     Palette.moss500,
-    shadowOffset:    { width: 0, height: 2 },
-    shadowOpacity:   0.08,
-    shadowRadius:    8,
-    elevation:       2,
+    shadowColor:   Palette.moss500,
+    shadowOffset:  { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius:  8,
+    elevation:     2,
   },
   tabText: {
     fontFamily: Typography.bodySemi,
     fontSize:   Typography.sm,
-    color:      Colors.textMuted,
-  },
-  tabTextActive: {
-    color: Palette.loam,
   },
   loadingContainer: {
     alignItems:      'center',
@@ -300,7 +296,6 @@ const styles = StyleSheet.create({
   loadingText: {
     fontFamily: Typography.body,
     fontSize:   Typography.sm,
-    color:      Colors.textMuted,
   },
   dealGrid: {
     paddingHorizontal: 20,
@@ -317,14 +312,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontFamily:   Typography.heading,
     fontSize:     Typography['2xl'],
-    color:        Palette.loam,
     textAlign:    'center',
     marginBottom: 12,
   },
   emptyBody: {
     fontFamily: Typography.body,
     fontSize:   Typography.base,
-    color:      Colors.textMuted,
     textAlign:  'center',
     lineHeight: 22,
   },

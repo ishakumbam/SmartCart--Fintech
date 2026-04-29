@@ -88,12 +88,13 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <AuthGate />
           <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(auth)"     options={{ animation: 'fade' }} />
-            <Stack.Screen name="(tabs)"     options={{ animation: 'fade' }} />
-            <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
-            <Stack.Screen name="history"    options={{ animation: 'slide_from_right' }} />
-            <Stack.Screen name="privacy"    options={{ animation: 'slide_from_right' }} />
-            <Stack.Screen name="terms"      options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="(auth)"       options={{ animation: 'fade' }} />
+            <Stack.Screen name="(tabs)"       options={{ animation: 'fade' }} />
+            <Stack.Screen name="onboarding"   options={{ animation: 'fade' }} />
+            <Stack.Screen name="history"      options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="privacy"      options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="terms"        options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="edit-profile" options={{ animation: 'slide_from_right' }} />
           </Stack>
           <StatusBar style="dark" backgroundColor="transparent" translucent />
         </QueryClientProvider>

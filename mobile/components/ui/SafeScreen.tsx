@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { OrganicBlob, GrainOverlay, BlobVariant, BlobColor } from './OrganicBlob';
 
 interface SafeScreenProps {
@@ -21,8 +21,8 @@ interface SafeScreenProps {
 }
 
 const DEFAULT_BLOBS: SafeScreenProps['blobs'] = [
-  { variant: 1, color: 'moss', size: 300, top: -80,  right: -100, opacity: 0.35 },
-  { variant: 3, color: 'clay', size: 240, bottom: -60, left: -80,  opacity: 0.28 },
+  { variant: 1, color: 'moss', size: 300, top: -80,   right: -100, opacity: 0.35 },
+  { variant: 3, color: 'clay', size: 240, bottom: -60, left: -80,   opacity: 0.28 },
 ];
 
 export function SafeScreen({
@@ -31,8 +31,10 @@ export function SafeScreen({
   grain    = true,
   innerStyle,
 }: SafeScreenProps) {
+  const { theme } = useTheme();
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
       {blobs?.map((blob, i) => (
         <View
           key={i}
@@ -54,9 +56,7 @@ export function SafeScreen({
           />
         </View>
       ))}
-
       {grain && <GrainOverlay opacity={0.03} />}
-
       <View style={[styles.inner, innerStyle]}>
         {children}
       </View>
@@ -66,9 +66,8 @@ export function SafeScreen({
 
 const styles = StyleSheet.create({
   safe: {
-    flex:            1,
-    backgroundColor: Colors.background,
-    overflow:        'hidden',
+    flex:     1,
+    overflow: 'hidden',
   },
   inner: {
     flex:   1,
