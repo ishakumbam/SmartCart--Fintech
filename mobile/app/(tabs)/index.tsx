@@ -270,11 +270,11 @@ const styles = StyleSheet.create({
     padding:          4,
   },
   tab: {
-    flex:           1,
+    flex:            1,
     paddingVertical: 10,
-    borderRadius:   9999,
-    alignItems:     'center',
-    justifyContent: 'center',
+    borderRadius:    9999,
+    alignItems:      'center',
+    justifyContent:  'center',
   },
   tabActive: {
     shadowColor:   Palette.moss500,
